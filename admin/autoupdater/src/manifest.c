@@ -118,6 +118,8 @@ void parse_line(char *line, struct manifest *m, const char *branch, const char *
 			char *version = strtok(NULL, " ");
 			char *checksum = strtok(NULL, " ");
 			char *filename = strtok(NULL, " ");
+			if (strtok(NULL, " "))
+				return;
 
 			if (model == NULL || strcmp(model, image_name))
 				return;
