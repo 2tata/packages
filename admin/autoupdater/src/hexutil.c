@@ -28,22 +28,16 @@
 #include <stdio.h>
 #include <string.h>
 
-int parsehex(void *buffer, const char *string, size_t len) {
+
+bool parsehex(void *output, const char *input, size_t len) {
+	unsigned char *buffer = output;
+
 	// number of digits must be 2 * len
-	if (strlen(string) != 2 * len)
-		return 0;
+	if ((strspn(input, "0123456789abcdefABCDEF") != 2*len) || input[2*len])
+		return false;
 
-	while (len--) {
-		int ret;
-		ret = sscanf(string, "%02hhx", (char*)(buffer++));
-		string += 2;
+	for (size_t i = 0; i < len; i++)
+		sscanf(&input[2*i], "%02hhx", &buffer[i]);
 
-		if (ret != 1)
-			break;
-	}
-
-	if (len != -1)
-		return 0;
-
-	return 1;
+	return true;
 }

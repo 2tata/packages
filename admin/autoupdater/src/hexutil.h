@@ -24,11 +24,12 @@
 */
 #pragma once
 
-#include <stdio.h>
+#include <stdbool.h>
+#include <stddef.h>
 
 
 /* Converts a string of hexadecimal digits and stores it in a given buffer.
  * In order for this function to return successfully the decoded string
  * must fit exactly into the buffer.
  */
-int parsehex(void *buffer, const char *string, size_t len);
+bool parsehex(void *buffer, const char *string, size_t len);
