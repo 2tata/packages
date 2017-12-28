@@ -278,6 +278,21 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 		goto out;
 	}
 
+	/* Check manifest signatures */
+	{
+		ecc_int256_t hash;
+		ecdsa_sha256_final(&m->hash_ctx, hash.p);
+		ecdsa_verify_context_t ctxs[m->n_signatures];
+		for (size_t i = 0; i < m->n_signatures; i++)
+			ecdsa_verify_prepare_legacy(&ctxs[i], &hash, m->signatures[i]);
+
+		long unsigned int good_signatures = ecdsa_verify_list_legacy(ctxs, m->n_signatures, s->pubkeys, s->n_pubkeys);
+		if (good_signatures < s->good_signatures) {
+			fprintf(stderr, "autoupdater: warning: manifest %s only carried %lu valid signatures, %lu are required\n", manifest_url, good_signatures, s->good_signatures);
+			goto out;
+		}
+	}
+
 	/* Check manifest */
 	if (!m->date_ok || !m->priority_ok) {
 		fprintf(stderr, "autoupdater: warning: manifest is missing mandatory fields");
@@ -292,21 +307,6 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 	if (!m->image_filename || !m->version) {
 		fprintf(stderr, "autoupdater: warning: no matching firmware found (model %s)\n", platforminfo_get_image_name());
 		goto out;
-	}
-
-	/* Check manifest signatures */
-	{
-		ecc_int256_t hash;
-		ecdsa_sha256_final(&m->hash_ctx, hash.p);
-		ecdsa_verify_context_t ctxs[m->n_signatures];
-		for (size_t i = 0; i < m->n_signatures; i++)
-			ecdsa_verify_prepare_legacy(&ctxs[i], &hash, m->signatures[i]);
-
-		long unsigned int good_signatures = ecdsa_verify_list_legacy(ctxs, m->n_signatures, s->pubkeys, s->n_pubkeys);
-		if (good_signatures < s->good_signatures) {
-			fprintf(stderr, "autoupdater: warning: manifest %s only carried %lu valid signatures, %lu are required\n", manifest_url, good_signatures, s->good_signatures);
-			goto out;
-		}
 	}
 
 	/* Check version and update probability */
