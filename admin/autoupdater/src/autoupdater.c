@@ -374,14 +374,6 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 	/* Begin upgrade */
 	run_dir(upgrade_d_dir);
 
-	/* Close stdin and stderr to not give sysupgrade unneccessary SIGHUPs */
-	{
-		int null_fd = open("/dev/null", O_RDWR);
-		dup2(null_fd, 0);
-		dup2(null_fd, 2);
-		close(null_fd);
-	}
-
 	/* Unset FD_CLOEXEC so the lockfile stays locked during sysupgrade */
 	fcntl(lock_fd, F_SETFD, 0);
 
