@@ -279,6 +279,11 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 	}
 
 	/* Check manifest */
+	if (!m->date_ok || !m->priority_ok) {
+		fprintf(stderr, "autoupdater: warning: manifest is missing mandatory fields");
+		goto out;
+	}
+
 	if (!m->branch_ok) {
 		fprintf(stderr, "autoupdater: warning: manifest %s is not for branch %s\n", manifest_url, s->branch);
 		goto out;

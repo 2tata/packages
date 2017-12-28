@@ -33,8 +33,10 @@
 
 
 struct manifest {
-	bool sep_found;
-	bool branch_ok;
+	bool sep_found:1;
+	bool branch_ok:1;
+	bool date_ok:1;
+	bool priority_ok:1;
 	char *image_filename;
 	unsigned char *image_hash[ECDSA_SHA256_HASH_SIZE];
 	char *version;

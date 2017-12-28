@@ -48,6 +48,32 @@ void free_manifest_data(struct manifest *m) {
 }
 
 
+static bool parse_rfc3339(const char *input, time_t *date) {
+	struct tm tm;
+	char tzs;
+	unsigned tzh, tzm;
+
+	char *rem = strptime(input, "%Y-%m-%d %T", &tm);
+	if (!rem)
+		return false;
+
+	/* POSIX/musl strptime does not handle time zone */
+	if (sscanf(rem, "%c%02u:%02u", &tzs, &tzh, &tzm) != 3)
+		return false;
+
+	time_t tz = 3600 * tzh + 60 * tzm;
+	if (tzs == '-')
+		tz = -tz;
+	else if(tzs != '+')
+		return false;
+
+
+	*date = mktime(&tm) + tz;
+	return true;
+
+}
+
+
 void parse_line(char *line, struct manifest *m, const char *branch, const char *image_name) {
 	if (m->sep_found) {
 		ecdsa_signature_t *sig = malloc(sizeof(ecdsa_signature_t));
@@ -70,14 +96,15 @@ void parse_line(char *line, struct manifest *m, const char *branch, const char *
 		}
 
 		else if (!strncmp(line, "DATE=", 5)) {
-			struct tm timestamp;
-			char *rem = strptime(&line[5], "%Y-%m-%dT%H:%M:%S%z", &timestamp);
-			if (rem != NULL && *rem == '\0')
-				m->date = mktime(&timestamp);
+			if (!m->date_ok)
+				m->date_ok = parse_rfc3339(&line[5], &m->date);
 		}
 
 		else if (!strncmp(line, "PRIORITY=", 9)) {
-			m->priority = strtof(&line[9], NULL);
+			if (!m->priority_ok) {
+				m->priority = strtof(&line[9], NULL);
+				m->priority_ok = true;
+			}
 		}
 
 		else {
