@@ -51,28 +51,23 @@ void run_dir(const char *dir) {
 
 		pid_t pid = fork();
 		if (pid < 0) {
-			fputs("autoupdater: warning: failed to fork: ", stderr);
-			perror(NULL);
-		} if (pid == 0) {
-			int null_fd = open("/dev/null", O_RDWR);
-			dup2(null_fd, 0);
-			dup2(null_fd, 1);
-			dup2(null_fd, 2);
-			close(null_fd);
+			fputs("autoupdater: warning: failed to fork: %m", stderr);
+			continue;
+		}
+
+		if (pid == 0) {
 			execl(path, path, (char *)NULL);
 			exit(EXIT_FAILURE);
-		} else {
-			int wstatus;
-			if (waitpid(pid, &wstatus, 0) != pid) {
-				fprintf(stderr, "autoupdater: warning: failed waiting for child %d corresponding to %s: ", pid, path);
-				perror(NULL);
-			}
-			else if (!WIFEXITED(wstatus)) {
-				fprintf(stderr, "autoupdater: warning: execution of %s exited abnormally\n", path);
-			}
-			else if (WEXITSTATUS(wstatus)) {
-				fprintf(stderr, "autoupdater: warning: execution of %s exited with status code %d\n", path, WEXITSTATUS(wstatus));
-			}
+		}
+
+		int wstatus;
+		if (waitpid(pid, &wstatus, 0) != pid) {
+			fprintf(stderr, "autoupdater: warning: failed waiting for child %d corresponding to %s: ", pid, path);
+			perror(NULL);
+		} else if (!WIFEXITED(wstatus)) {
+			fprintf(stderr, "autoupdater: warning: execution of %s exited abnormally\n", path);
+		} else if (WEXITSTATUS(wstatus)) {
+			fprintf(stderr, "autoupdater: warning: execution of %s exited with status code %d\n", path, WEXITSTATUS(wstatus));
 		}
 	}
 
