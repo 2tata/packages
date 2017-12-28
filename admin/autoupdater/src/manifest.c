@@ -122,14 +122,13 @@ void parse_line(char *line, struct manifest *m, const char *branch, const char *
 			if (checksum == NULL || !parsehex(m->image_hash, checksum, ECDSA_SHA256_HASH_SIZE))
 				return;
 
-			m->version = realloc(m->version, (strlen(version) + 1) * sizeof(char));
-			if (m->version != NULL)
-				strcpy(m->version, version);
+			if (m->version)
+				free(m->version);
+			m->version = strdup(version);
 
-			m->image_filename = realloc(m->image_filename, (strlen(filename) + 1) * sizeof(char));
-			if (m->image_filename != NULL)
-				strcpy(m->image_filename, filename);
-
+			if (m->image_filename)
+				free(m->image_filename);
+			m->image_filename = strdup(filename);
 		}
 	}
 }
