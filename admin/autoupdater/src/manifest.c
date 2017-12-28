@@ -113,19 +113,3 @@ void parse_line(char *line, struct manifest *m, const char *branch, const char *
 		}
 	}
 }
-
-
-void parse_manifest(const char *file, struct manifest *m, const char *branch, const char *image_name) {
-	char *line = NULL;
-	size_t len = 0;
-	ssize_t read;
-	FILE *f = fopen(file, "r");
-	if (!f)
-		return;
-
-	while ((read = getline(&line, &len, f)) != -1)
-		parse_line(line, m, branch, image_name);
-
-	free(line);
-	fclose(f);
-}
