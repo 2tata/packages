@@ -40,9 +40,9 @@ void free_manifest_data(struct manifest *m) {
 	free(m->version);
 	m->version = NULL;
 
-	for (int i = 0; i < m->n_signatures; i++) {
+	for (size_t i = 0; i < m->n_signatures; i++)
 		free(m->signatures[i]);
-	}
+
 	free(m->signatures);
 	m->signatures = NULL;
 }
