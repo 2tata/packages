@@ -49,14 +49,7 @@ void free_manifest_data(struct manifest *m) {
 
 
 void parse_line(char *line, struct manifest *m, const char *branch, const char *image_name) {
-	if (line == NULL)
-		return;
-
-	else if (!strcmp(line, "---")) {
-		m->sep_found = true;
-	}
-
-	else if (m->sep_found) {
+	if (m->sep_found) {
 		ecdsa_signature_t *sig = malloc(sizeof(ecdsa_signature_t));
 		if (!parsehex(sig, line, sizeof(*sig))) {
 			free(sig);
@@ -66,9 +59,9 @@ void parse_line(char *line, struct manifest *m, const char *branch, const char *
 		m->n_signatures++;
 		m->signatures = realloc(m->signatures, m->n_signatures * sizeof(ecdsa_signature_t));
 		m->signatures[m->n_signatures - 1] = sig;
-	}
-
-	else {
+	} else if (strcmp(line, "---") == 0) {
+		m->sep_found = true;
+	} else {
 		ecdsa_sha256_update(&m->hash_ctx, line, strlen(line));
 		ecdsa_sha256_update(&m->hash_ctx, "\n", 1);
 
