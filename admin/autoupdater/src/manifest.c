@@ -96,18 +96,24 @@ void parse_line(char *line, struct manifest *m, const char *branch, const char *
 		}
 
 		else if (!strncmp(line, "DATE=", 5)) {
-			if (!m->date_ok)
-				m->date_ok = parse_rfc3339(&line[5], &m->date);
+			if (m->date_ok)
+				return;
+
+			m->date_ok = parse_rfc3339(&line[5], &m->date);
 		}
 
 		else if (!strncmp(line, "PRIORITY=", 9)) {
-			if (!m->priority_ok) {
-				m->priority = strtof(&line[9], NULL);
-				m->priority_ok = true;
-			}
+			if (m->priority_ok)
+				return;
+
+			m->priority = strtof(&line[9], NULL);
+			m->priority_ok = true;
 		}
 
 		else {
+			if (m->model_ok)
+				return;
+
 			char *model = strtok(line, " ");
 			char *version = strtok(NULL, " ");
 			char *checksum = strtok(NULL, " ");
@@ -122,13 +128,10 @@ void parse_line(char *line, struct manifest *m, const char *branch, const char *
 			if (checksum == NULL || !parsehex(m->image_hash, checksum, ECDSA_SHA256_HASH_SIZE))
 				return;
 
-			if (m->version)
-				free(m->version);
 			m->version = strdup(version);
-
-			if (m->image_filename)
-				free(m->image_filename);
 			m->image_filename = strdup(filename);
+
+			m->model_ok = true;
 		}
 	}
 }

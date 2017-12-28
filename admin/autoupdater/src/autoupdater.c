@@ -304,7 +304,7 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 		goto out;
 	}
 
-	if (!m->image_filename || !m->version) {
+	if (!m->model_ok) {
 		fprintf(stderr, "autoupdater: warning: no matching firmware found (model %s)\n", platforminfo_get_image_name());
 		goto out;
 	}
