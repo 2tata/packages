@@ -56,7 +56,7 @@
 static const char *const download_d_dir = "/usr/lib/autoupdater/download.d";
 static const char *const abort_d_dir = "/usr/lib/autoupdater/abort.d";
 static const char *const upgrade_d_dir = "/usr/lib/autoupdater/upgrade.d";
-static const char *const lockfile = "/var/run/autoupdater.lock";
+static const char *const lockfile = "/var/lock/autoupdater.lock";
 static const char *const firmware_path = "/tmp/firmware.bin";
 static const char *const sysupgrade_path = "/sbin/sysupgrade";
 
@@ -382,6 +382,8 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 	/* execl() shouldn't return */
 	fputs("autoupdater: error: failed to call sysupgrade\n", stderr);
 
+	fcntl(lock_fd, F_SETFD, FD_CLOEXEC);
+
 fail_after_download:
 	unlink(firmware_path);
 	run_dir(abort_d_dir);
@@ -393,7 +395,7 @@ out:
 
 
 static int lock_autoupdater(void) {
-	int fd = open(lockfile, O_CREAT|O_RDONLY|O_CLOEXEC, 0666);
+	int fd = open(lockfile, O_CREAT|O_RDONLY|O_CLOEXEC, 0600);
 	if (fd < 0) {
 		fprintf(stderr, "autoupdater: error: unable to open lock file: %m\n");
 		return -1;
