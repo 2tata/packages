@@ -78,8 +78,7 @@ void run_dir(const char *dir) {
 void randomize(void) {
 	struct timespec tv;
 	if (clock_gettime(CLOCK_MONOTONIC, &tv)) {
-		fprintf(stderr, "autoupdater: error: clock_gettime:");
-		perror(NULL);
+		perror("autoupdater: error: clock_gettime");
 		exit(1);
 	}
 
