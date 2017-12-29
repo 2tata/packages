@@ -33,18 +33,15 @@
 
 
 // only frees the data inside the manifest struct, not the struct itself!
-void free_manifest_data(struct manifest *m) {
+void clear_manifest(struct manifest *m) {
 	free(m->image_filename);
-	m->image_filename = NULL;
-
 	free(m->version);
-	m->version = NULL;
 
 	for (size_t i = 0; i < m->n_signatures; i++)
 		free(m->signatures[i]);
-
 	free(m->signatures);
-	m->signatures = NULL;
+
+	memset(m, 0, sizeof(*m));
 }
 
 

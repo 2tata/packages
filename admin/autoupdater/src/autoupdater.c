@@ -357,7 +357,7 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 		}
 	}
 
-	free_manifest_data(m);
+	clear_manifest(m);
 
 	/**** Call sysupgrade ************************************************/
 	if (s->no_action) {
@@ -389,7 +389,7 @@ fail_after_download:
 	run_dir(abort_d_dir);
 
 out:
-	free_manifest_data(m);
+	clear_manifest(m);
 	return ret;
 }
 
