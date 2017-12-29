@@ -117,19 +117,18 @@ void parse_line(char *line, struct manifest *m, const char *branch, const char *
 			char *model = strtok(line, " ");
 			char *version = strtok(NULL, " ");
 			char *checksum = strtok(NULL, " ");
+			char *imagesize = strtok(NULL, " ");
 			char *filename = strtok(NULL, " ");
-			if (strtok(NULL, " "))
+			if (!filename || strtok(NULL, " "))
 				return;
 
-			if (model == NULL || strcmp(model, image_name))
+			if (strcmp(model, image_name) != 0)
 				return;
 
-			if (version == NULL || filename == NULL)
+			if (!parsehex(m->image_hash, checksum, ECDSA_SHA256_HASH_SIZE))
 				return;
 
-			if (checksum == NULL || !parsehex(m->image_hash, checksum, ECDSA_SHA256_HASH_SIZE))
-				return;
-
+			m->imagesize = strtoull(imagesize, NULL, 10);
 			m->version = strdup(version);
 			m->image_filename = strdup(filename);
 

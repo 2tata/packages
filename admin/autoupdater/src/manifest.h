@@ -28,6 +28,7 @@
 #include <ecdsautil/ecdsa.h>
 #include <ecdsautil/sha256.h>
 
+#include <sys/types.h>
 #include <stdbool.h>
 #include <time.h>
 
@@ -43,6 +44,7 @@ struct manifest {
 	char *version;
 	time_t date;
 	float priority;
+	off_t imagesize;
 
 	size_t n_signatures;
 	ecdsa_signature_t **signatures;
