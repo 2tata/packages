@@ -83,7 +83,7 @@ void parse_line(char *line, struct manifest *m, const char *branch, const char *
 			return;
 		}
 		m->n_signatures++;
-		m->signatures = realloc(m->signatures, m->n_signatures * sizeof(ecdsa_signature_t));
+		m->signatures = realloc(m->signatures, m->n_signatures * sizeof(ecdsa_signature_t *));
 		m->signatures[m->n_signatures - 1] = sig;
 	} else if (strcmp(line, "---") == 0) {
 		m->sep_found = true;
