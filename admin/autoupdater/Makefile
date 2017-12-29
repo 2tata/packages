@@ -15,6 +15,11 @@ define Package/autoupdater
   TITLE:=Automatically update firmware
 endef
 
+define Package/autoupdater/conffiles
+/etc/config/autoupdater
+endef
+
+
 CMAKE_OPTIONS += \
     -DCMAKE_BUILD_TYPE:String="MINSIZEREL"
 
