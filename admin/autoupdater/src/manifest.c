@@ -46,26 +46,31 @@ void clear_manifest(struct manifest *m) {
 
 
 static bool parse_rfc3339(const char *input, time_t *date) {
-	struct tm tm;
 	char tzs;
-	unsigned tzh, tzm;
+	unsigned year, month, day, hour, minute, second, tzh, tzm;
 
-	char *rem = strptime(input, "%Y-%m-%d %T", &tm);
-	if (!rem)
+	if (sscanf(input, "%04u-%02u-%02u %02u:%02u:%02u%c%02u:%02u",
+		   &year, &month, &day, &hour, &minute, &second,
+		   &tzs, &tzh, &tzm) != 9)
 		return false;
 
-	/* POSIX/musl strptime does not handle time zone */
-	if (sscanf(rem, "%c%02u:%02u", &tzs, &tzh, &tzm) != 3)
-		return false;
+	time_t a = (14 - month)/12;
+	time_t y = year - a;
+	time_t m = month + 12*a - 3;
+
+	/* Based on a well-known formula for Julian dates */
+	time_t days = day + (153*m + 2)/5 + 365*y + y/4 - y/100 + y/400 - 719469;
+	time_t tim = hour*3600 + minute*60 + second;
+
 
 	time_t tz = 3600 * tzh + 60 * tzm;
 	if (tzs == '-')
 		tz = -tz;
-	else if(tzs != '+')
+	else if (tzs != '+')
 		return false;
 
 
-	*date = mktime(&tm) + tz;
+	*date = 86400*days + tim - tz;
 	return true;
 
 }
