@@ -212,7 +212,7 @@ static void recv_manifest_cb(struct uclient *cl) {
 			fputs("autoupdater: error: encountered manifest line exceeding limit of " STRINGIFY(MAX_LINE_LENGTH) " characters\n", stderr);
 			break;
 		}
-		len = uclient_read(cl, ctx->ptr, MAX_LINE_LENGTH - (ctx->ptr - ctx->buf));
+		len = uclient_read_account(cl, ctx->ptr, MAX_LINE_LENGTH - (ctx->ptr - ctx->buf));
 		if (len <= 0)
 			break;
 		ctx->ptr[len] = '\0';
@@ -245,7 +245,7 @@ static void recv_image_cb(struct uclient *cl) {
 	int len;
 
 	while (true) {
-		len = uclient_read(cl, buf, sizeof(buf));
+		len = uclient_read_account(cl, buf, sizeof(buf));
 		if (!len)
 			return;
 
@@ -270,9 +270,12 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 	char manifest_url[strlen(mirror) + strlen(s->branch) + 11];
 	sprintf(manifest_url, "%s/%s.manifest", mirror, s->branch);
 
+
+	printf("Retrieving manifest from %s ...\n", manifest_url);
+
 	/* Download manifest */
 	ecdsa_sha256_init(&m->hash_ctx);
-	int err_code = get_url(manifest_url, recv_manifest_cb, &manifest_ctx);
+	int err_code = get_url(manifest_url, recv_manifest_cb, &manifest_ctx, -1);
 	if (err_code != 0) {
 		fprintf(stderr, "autoupdater: warning: error downloading manifest: %s\n", uclient_get_errmsg(err_code));
 		goto out;
@@ -338,7 +341,7 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 		char image_url[strlen(mirror) + strlen(m->image_filename) + 2];
 		sprintf(image_url, "%s/%s", mirror, m->image_filename);
 		ecdsa_sha256_init(&image_ctx.hash_ctx);
-		int err_code = get_url(image_url, &recv_image_cb, &image_ctx);
+		int err_code = get_url(image_url, &recv_image_cb, &image_ctx, m->imagesize);
 		if (err_code != 0) {
 			fprintf(stderr, "autoupdater: warning: error downloading image: %s\n", uclient_get_errmsg(err_code));
 			close(image_ctx.fd);

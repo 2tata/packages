@@ -27,6 +27,8 @@
 #include "hexutil.h"
 #include "manifest.h"
 
+#include <errno.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -130,7 +132,18 @@ void parse_line(char *line, struct manifest *m, const char *branch, const char *
 			if (!parsehex(m->image_hash, checksum, ECDSA_SHA256_HASH_SIZE))
 				return;
 
-			m->imagesize = strtoull(imagesize, NULL, 10);
+			{
+
+				char *endptr;
+
+				errno = 0;
+				unsigned long long val = strtoull(imagesize, &endptr, 10);
+				if (errno || *endptr || val > SSIZE_MAX)
+					return;
+
+				m->imagesize = val;
+			}
+
 			m->version = strdup(version);
 			m->image_filename = strdup(filename);
 

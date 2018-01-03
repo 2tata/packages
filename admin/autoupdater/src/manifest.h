@@ -44,7 +44,7 @@ struct manifest {
 	char *version;
 	time_t date;
 	float priority;
-	off_t imagesize;
+	ssize_t imagesize;
 
 	size_t n_signatures;
 	ecdsa_signature_t **signatures;

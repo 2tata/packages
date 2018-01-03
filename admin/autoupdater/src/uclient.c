@@ -26,6 +26,7 @@
 
 #include "uclient.h"
 
+#include <libubox/blobmsg.h>
 #include <libubox/uloop.h>
 
 #include <limits.h>
@@ -42,6 +43,8 @@ struct uclient_data {
 	/* data used by uclient callbacks */
 	int retries;
 	int err_code;
+	ssize_t downloaded;
+	ssize_t length;
 };
 
 inline struct uclient_data *uc_data(struct uclient *cl) {
@@ -52,6 +55,7 @@ enum uclient_own_error_code {
 	UCLIENT_ERROR_REDIRECT_FAILED = 32,
 	UCLIENT_ERROR_TOO_MANY_REDIRECTS,
 	UCLIENT_ERROR_CONNECTION_RESET_PREMATURELY,
+	UCLIENT_ERROR_SIZE_MISMATCH,
 	UCLIENT_ERROR_STATUS_CODE = 1024,
 };
 
@@ -74,6 +78,8 @@ const char *uclient_get_errmsg(int code) {
 		return "Too many redirects";
 	case UCLIENT_ERROR_CONNECTION_RESET_PREMATURELY:
 		return "Connection reset prematurely";
+	case UCLIENT_ERROR_SIZE_MISMATCH:
+		return "Incorrect file size";
 	default:
 		return "Unknown error";
 	}
@@ -88,6 +94,12 @@ static void request_done(struct uclient *cl, int err_code) {
 
 
 static void header_done_cb(struct uclient *cl) {
+	const struct blobmsg_policy policy = {
+		.name = "content-length",
+		.type = BLOBMSG_TYPE_STRING,
+	};
+	struct blob_attr *tb_len;
+
 	if (uc_data(cl)->retries < 10) {
 		int ret = uclient_http_redirect(cl);
 		if (ret < 0) {
@@ -107,9 +119,26 @@ static void header_done_cb(struct uclient *cl) {
 	case 302:
 	case 307:
 		request_done(cl, UCLIENT_ERROR_TOO_MANY_REDIRECTS);
-		break;
+		return;
 	default:
 		request_done(cl, UCLIENT_ERROR_STATUS_CODE | cl->status_code);
+		return;
+	}
+
+	blobmsg_parse(&policy, 1, &tb_len, blob_data(cl->meta), blob_len(cl->meta));
+	if (tb_len) {
+		char *endptr;
+
+		errno = 0;
+		unsigned long long val = strtoull(blobmsg_get_string(tb_len), &endptr, 10);
+		if (!errno && !*endptr && val <= SSIZE_MAX) {
+			if (uc_data(cl)->length >= 0 && uc_data(cl)->length != (ssize_t)val) {
+				request_done(cl, UCLIENT_ERROR_SIZE_MISMATCH);
+				return;
+			}
+
+			uc_data(cl)->length = val;
+		}
 	}
 }
 
@@ -119,8 +148,25 @@ static void eof_cb(struct uclient *cl) {
 }
 
 
-int get_url(const char *url, void (*read_cb)(struct uclient *cl), void *cb_data) {
-	struct uclient_data d = { .custom = cb_data };
+ssize_t uclient_read_account(struct uclient *cl, char *buf, int len) {
+	struct uclient_data *d = uc_data(cl);
+	int r = uclient_read(cl, buf, len);
+
+	if (r >= 0) {
+		d->downloaded += r;
+
+		if (d->length >= 0 && d->downloaded > d->length) {
+			request_done(cl, UCLIENT_ERROR_SIZE_MISMATCH);
+			return -1;
+		}
+	}
+
+	return r;
+}
+
+
+int get_url(const char *url, void (*read_cb)(struct uclient *cl), void *cb_data, ssize_t len) {
+	struct uclient_data d = { .custom = cb_data, .length = len };
 	struct uclient_cb cb = {
 		.header_done = header_done_cb,
 		.data_read = read_cb,
@@ -138,6 +184,9 @@ int get_url(const char *url, void (*read_cb)(struct uclient *cl), void *cb_data)
 	uclient_request(cl);
 	uloop_run();
 	uclient_free(cl);
+
+	if (!d.err_code && d.length >= 0 && d.downloaded != d.length)
+		return UCLIENT_ERROR_SIZE_MISMATCH;
 
 	return d.err_code;
 }
