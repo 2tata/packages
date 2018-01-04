@@ -246,7 +246,7 @@ static void recv_image_cb(struct uclient *cl) {
 
 	while (true) {
 		len = uclient_read_account(cl, buf, sizeof(buf));
-		if (!len)
+		if (len <= 0)
 			return;
 
 		if (write(ctx->fd, buf, len) < len) {
