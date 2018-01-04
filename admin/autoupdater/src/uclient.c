@@ -37,20 +37,6 @@
 
 static const char *const user_agent = "Gluon Autoupdater (using libuclient)";
 
-struct uclient_data {
-	/* data that can be passed in by caller and used in custom callbacks */
-	void *custom;
-	/* data used by uclient callbacks */
-	int retries;
-	int err_code;
-	ssize_t downloaded;
-	ssize_t length;
-};
-
-inline struct uclient_data *uc_data(struct uclient *cl) {
-	return (struct uclient_data *)cl->priv;
-}
-
 enum uclient_own_error_code {
 	UCLIENT_ERROR_REDIRECT_FAILED = 32,
 	UCLIENT_ERROR_TOO_MANY_REDIRECTS,
@@ -87,7 +73,7 @@ const char *uclient_get_errmsg(int code) {
 
 
 static void request_done(struct uclient *cl, int err_code) {
-	uc_data(cl)->err_code = err_code;
+	uclient_data(cl)->err_code = err_code;
 	uclient_disconnect(cl);
 	uloop_end();
 }
@@ -100,14 +86,14 @@ static void header_done_cb(struct uclient *cl) {
 	};
 	struct blob_attr *tb_len;
 
-	if (uc_data(cl)->retries < 10) {
+	if (uclient_data(cl)->retries < 10) {
 		int ret = uclient_http_redirect(cl);
 		if (ret < 0) {
 			request_done(cl, UCLIENT_ERROR_REDIRECT_FAILED);
 			return;
 		}
 		if (ret > 0) {
-			uc_data(cl)->retries++;
+			uclient_data(cl)->retries++;
 			return;
 		}
 	}
@@ -132,12 +118,12 @@ static void header_done_cb(struct uclient *cl) {
 		errno = 0;
 		unsigned long long val = strtoull(blobmsg_get_string(tb_len), &endptr, 10);
 		if (!errno && !*endptr && val <= SSIZE_MAX) {
-			if (uc_data(cl)->length >= 0 && uc_data(cl)->length != (ssize_t)val) {
+			if (uclient_data(cl)->length >= 0 && uclient_data(cl)->length != (ssize_t)val) {
 				request_done(cl, UCLIENT_ERROR_SIZE_MISMATCH);
 				return;
 			}
 
-			uc_data(cl)->length = val;
+			uclient_data(cl)->length = val;
 		}
 	}
 }
@@ -149,7 +135,7 @@ static void eof_cb(struct uclient *cl) {
 
 
 ssize_t uclient_read_account(struct uclient *cl, char *buf, int len) {
-	struct uclient_data *d = uc_data(cl);
+	struct uclient_data *d = uclient_data(cl);
 	int r = uclient_read(cl, buf, len);
 
 	if (r >= 0) {
