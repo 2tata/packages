@@ -249,6 +249,13 @@ static void recv_image_cb(struct uclient *cl) {
 		if (len <= 0)
 			return;
 
+		printf(
+			"\rDownloading image: % 5zi / %zi KiB",
+			uclient_data(cl)->downloaded / 1024,
+			uclient_data(cl)->length / 1024
+		);
+		fflush(stdout);
+
 		if (write(ctx->fd, buf, len) < len) {
 			fputs("autoupdater: error: downloading firmware image failed: ", stderr);
 			perror(NULL);
@@ -342,6 +349,7 @@ static bool autoupdate(const char *mirror, struct settings *s, int lock_fd) {
 		sprintf(image_url, "%s/%s", mirror, m->image_filename);
 		ecdsa_sha256_init(&image_ctx.hash_ctx);
 		int err_code = get_url(image_url, &recv_image_cb, &image_ctx, m->imagesize);
+		puts("");
 		if (err_code != 0) {
 			fprintf(stderr, "autoupdater: warning: error downloading image: %s\n", uclient_get_errmsg(err_code));
 			close(image_ctx.fd);
